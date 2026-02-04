@@ -1,7 +1,18 @@
 import os
 
-def clear_screen():
-    os.system('clear')
+def create_box(stdscr, height, width, y, x, title=""):
+    """Create a bordered box at the specified position."""
+
+    win = stdscr.subwin(height, width, y, x)
+
+    win.box()
+
+    if title:
+        title_str = f"[ {title} ]"
+        title_x = (width - len(title_str) // 2)
+        win.addstr(0, title_x, title_str)
+
+    return win
 
 def draw_bar(percentage, width=40):
     """

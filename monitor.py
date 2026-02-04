@@ -87,95 +87,132 @@ def render_header(stdscr, row):
     return row + 2
 
 
-def render_cpu_section(stdscr, row, cpu_info):
+def render_cpu_section(stdscr, y, x, width, height, cpu_info):
     """Display CPU information"""
-    stdscr.addstr(row, 0, "CPU USAGE:")
+    # stdscr.addstr(row, 0, "CPU USAGE:")
+    # row += 1
+
+    # stdscr.addstr(row, 0, f"   Overall: {utils.draw_bar(cpu_info['overall'])}")
+    # row += 1
+
+    # stdscr.addstr(row, 0, f"   Cores: {cpu_info['count']}")
+    # row += 1
+
+    # stdscr.addstr(row, 0, f"   Per-Core Usage:")
+    # row += 1
+
+    # for i, usage in enumerate(cpu_info['per_cpu']):
+    #     stdscr.addstr(row, 0, f"   Core {i}: {utils.draw_bar(usage, width=30)}")
+    #     row += 1
+
+    # return row + 1
+    cpu_win = utils.create_box(stdscr, height, width, y, x, "CPU Usage")
+    row = 1
+
+    cpu_win.addstr(row, 2, f"Overall: {utils.draw_bar(cpu_info['overall'], width=width-20)}")
     row += 1
 
-    stdscr.addstr(row, 0, f"   Overall: {utils.draw_bar(cpu_info['overall'])}")
-    row += 1
+    cpu_win.addstr(row, 2, f"Cores: {cpu_info['count']}")
+    row += 2
 
-    stdscr.addstr(row, 0, f"   Cores: {cpu_info['count']}")
-    row += 1
-
-    stdscr.addstr(row, 0, f"   Per-Core Usage:")
-    row += 1
-
-    for i, usage in enumerate(cpu_info['per_cpu']):
-        stdscr.addstr(row, 0, f"   Core {i}: {utils.draw_bar(usage, width=30)}")
-        row += 1
-
-    return row + 1
-
-
-def render_memory_section(stdscr, row, mem_info):
-    """Display memory information"""
-    stdscr.addstr(row, 0, "Memory:")
-    row += 1
-
-    stdscr.addstr(row, 0, f"   RAM: {utils.draw_bar(mem_info['percent'])}")
-    row += 1
-
-    used_str = utils.get_size_str(mem_info['used'])
-    total_str = utils.get_size_str(mem_info['total'])
-    available_str = utils.get_size_str(mem_info['available'])
-    stdscr.addstr(row, 0, f"      {used_str} / {total_str} ({available_str} available)")
-    row += 1
-
-    if mem_info['swap_total'] > 0:
-        stdscr.addstr(row, 0, f"   Swap: {utils.draw_bar(mem_info['swap_percent'])}")
-        row += 1
-
-        swap_used = utils.get_size_str(mem_info['swap_used'])
-        swap_total = utils.get_size_str(mem_info['swap_total'])
-        stdscr.addstr(row, 0, f"      {swap_used} / {swap_total}")
+    available_rows = height - row - 1  # -1 for bottom border
+    cores_to_show = min(len(cpu_info['per_cpu']), available_rows)
+    
+    for i in range(cores_to_show):
+        usage = cpu_info['per_cpu'][i]
+        cpu_win.addstr(row, 2, f"Core {i}: {utils.draw_bar(usage, width=width-15)}")
         row += 1
     
-    return row + 1
+    # Refresh this window
+    cpu_win.refresh()
 
-def render_disk_section(stdscr, row, disk_info):
-    """Display disk information"""
-    stdscr.addstr(row, 0, "Disk (/):")
+
+def render_memory_section(stdscr, y, x, width, height, mem_info):
+    """Render memory information in a bordered box."""
+    # Create the box
+    mem_win = utils.create_box(stdscr, height, width, y, x, "Memory")
+    
+    row = 1
+    
+    # RAM
+    mem_win.addstr(row, 2, "RAM:")
     row += 1
-
-    stdscr.addstr(row, 0, f"   {utils.draw_bar(disk_info['percent'])}")
+    
+    bar_width = width - 12  # Leave room for label and borders
+    mem_win.addstr(row, 2, f"  {utils.draw_bar(mem_info['percent'], width=bar_width)}")
     row += 1
+    
+    # Size info
+    used_str = utils.get_size_str(mem_info['used'])
+    total_str = utils.get_size_str(mem_info['total'])
+    avail_str = utils.get_size_str(mem_info['available'])
+    mem_win.addstr(row, 2, f"  {used_str} / {total_str}")
+    row += 1
+    mem_win.addstr(row, 2, f"  {avail_str} available")
+    row += 2
+    
+    # Swap (if exists)
+    if mem_info['swap_total'] > 0:
+        mem_win.addstr(row, 2, "Swap:")
+        row += 1
+        
+        mem_win.addstr(row, 2, f"  {utils.draw_bar(mem_info['swap_percent'], width=bar_width)}")
+        row += 1
+        
+        swap_used_str = utils.get_size_str(mem_info['swap_used'])
+        swap_total_str = utils.get_size_str(mem_info['swap_total'])
+        mem_win.addstr(row, 2, f"  {swap_used_str} / {swap_total_str}")
+    
+    mem_win.refresh()
 
+def render_disk_section(stdscr, y, x, width, height, disk_info):
+    """Render disk information in a bordered box."""
+    disk_win = utils.create_box(stdscr, height, width, y, x, "Disk (/)")
+    
+    row = 1
+    bar_width = width - 12
+    
+    disk_win.addstr(row, 2, f"{utils.draw_bar(disk_info['percent'], width=bar_width)}")
+    row += 2
+    
     used_str = utils.get_size_str(disk_info['used'])
     total_str = utils.get_size_str(disk_info['total'])
     free_str = utils.get_size_str(disk_info['free'])
-    stdscr.addstr(row, 0, f"      {used_str} / {total_str} ({free_str} free)")
+    
+    disk_win.addstr(row, 2, f"Used: {used_str} / {total_str}")
     row += 1
-
-    return row + 1
-
-def render_network_section(stdscr, row, net_info):
-    """Display network statistics."""
-    stdscr.addstr(row, 0, "Network:")
+    disk_win.addstr(row, 2, f"Free: {free_str}")
     row += 1
+    disk_win.addstr(row, 2, f"Usage: {disk_info['percent']:.1f}%")
+    
+    disk_win.refresh()
+
+def render_network_section(stdscr, y, x, width, height, net_info):
+    """Render network information in a bordered box."""
+    net_win = utils.create_box(stdscr, height, width, y, x, "Network")
+    
+    row = 1
     
     # Total transferred
     sent_str = utils.get_size_str(net_info['bytes_sent'])
     recv_str = utils.get_size_str(net_info['bytes_recv'])
     
-    stdscr.addstr(row, 0, f"   Sent: {sent_str} ({net_info['packets_sent']:,} packets)")
+    net_win.addstr(row, 2, f"Sent: {sent_str} ({net_info['packets_sent']:,} packets)")
     row += 1
     
-    stdscr.addstr(row, 0, f"   Recv: {recv_str} ({net_info['packets_recv']:,} packets)")
+    net_win.addstr(row, 2, f"Recv: {recv_str} ({net_info['packets_recv']:,} packets)")
+    row += 2
+    
+    # Current rates
+    send_rate_str = utils.get_size_str(net_info['send_rate'])
+    recv_rate_str = utils.get_size_str(net_info['recv_rate'])
+    
+    net_win.addstr(row, 2, f"↑ Upload:   {send_rate_str}/s")
     row += 1
     
-    # Current rates (if available)
-    if 'send_rate' in net_info and 'recv_rate' in net_info:
-        send_rate_str = utils.get_size_str(net_info['send_rate'])
-        recv_rate_str = utils.get_size_str(net_info['recv_rate'])
-        
-        stdscr.addstr(row, 0, f"   Upload speed: {send_rate_str}/s")
-        row += 1
-        
-        stdscr.addstr(row, 0, f"   Download speed: {recv_rate_str}/s")
-        row += 1
+    net_win.addstr(row, 2, f"↓ Download: {recv_rate_str}/s")
     
-    return row + 1
+    net_win.refresh()
 
 
 
@@ -185,41 +222,49 @@ def render_footer(stdscr, row):
 
 
 def main(stdscr):
-    curses.curs_set(0)  # Hide cursor
-    stdscr.nodelay(1)   # Don't block on input
-    stdscr.timeout(1000)    # Refresh every 1000ms
-
+    curses.curs_set(0)
+    stdscr.nodelay(1)
+    stdscr.timeout(1000)
+    
+    # Initialize network monitor
     net_monitor = NetworkMonitor()
-
+    
     while True:
         key = stdscr.getch()
         if key == ord('q'):
             break
-
+        
+        # Get terminal size
+        term_height, term_width = stdscr.getmaxyx()
+        
+        # Clear screen
         stdscr.clear()
-        max_row = stdscr.getmaxyx()[0] - 1  # Get terminal height
-
+        
         # Gather all data
         cpu_info = get_cpu_info()
         mem_info = get_memory_info()
         disk_info = get_disk_info()
         net_info = net_monitor.update()
-
-        # Render data (stop if exceeds terminal height)
-        row = 0
-        if row < max_row:
-            row = render_header(stdscr, row)
-        if row < max_row:
-            row = render_cpu_section(stdscr, row, cpu_info)
-        if row < max_row:
-            row = render_memory_section(stdscr, row, mem_info)
-        if row < max_row:
-            row = render_disk_section(stdscr, row, disk_info)
-        if row < max_row:
-            row = render_network_section(stdscr, row, net_info)
-        if row < max_row:
-            row = render_footer(stdscr, row)
-
+        
+        # Define layout dimensions
+        box_height = 12
+        box_width = term_width // 2 - 2  # Two columns with spacing
+        
+        # Top row - CPU (left) and Memory (right)
+        render_cpu_section(stdscr, 0, 0, box_width, box_height, cpu_info)
+        render_memory_section(stdscr, 0, box_width + 2, box_width, box_height, mem_info)
+        
+        # Second row - Disk (left) and Battery (right)
+        render_disk_section(stdscr, box_height, 0, box_width, 8, disk_info)
+        
+        # Third row - Network (full width)
+        render_network_section(stdscr, box_height + 8, 0, term_width - 1, 8, net_info)
+        
+        # Footer
+        footer_y = box_height + 16
+        stdscr.addstr(footer_y, 0, "Press 'q' to quit")
+        
+        # Refresh main screen
         stdscr.refresh()
 
 
